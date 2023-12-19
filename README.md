@@ -23,6 +23,5 @@
 
 ## 关于作者
 一名90后java程序员，相信能解决问题的技术才有价值。
-企业微信
-![0b241697258f25a9fbdff3a1419fdae](https://github.com/xuantiandaozun/ali-rds-write-tools/assets/45837154/fe42060a-dd8a-40dd-85d6-e006b5356a67)
+
 
