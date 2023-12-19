@@ -5,7 +5,8 @@
 ## 使用方法
 
 1. 下载最新的可执行文件（.exe）版本。
-2. 双击运行可执行文件。
+   ![image](https://github.com/xuantiandaozun/ali-rds-write-tools/assets/45837154/44d77742-b04b-4f5f-ba7b-41a20aeba726)
+3. 双击运行可执行文件。
    ![image](https://github.com/xuantiandaozun/ali-rds-write-tools/assets/45837154/b6baa7e1-2ae2-4dc7-8667-ea47496bea30)
 4. 设置阿里云访问密钥
    ![image](https://github.com/xuantiandaozun/ali-rds-write-tools/assets/45837154/d4e737a4-7919-4b1f-a848-710e2255d8a3)
