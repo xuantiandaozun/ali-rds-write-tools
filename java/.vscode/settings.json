@@ -1,0 +1,15 @@
+{
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "alibabacloud-rds20140815-1.4.23.jar",
+        "aliyun-http-apache-0.2.4-beta.jar",
+        "aliyun-java-auth-0.2.4-beta.jar",
+        "aliyun-java-core-0.2.4-beta.jar",
+        "darabonba-java-core-0.2.4-beta.jar",
+        "aliyun-gateway-pop-0.2.4-beta.jar",
+        "hutool-all-5.8.16.jar",
+        "slf4j-api-1.7.30.jar",
+        "dom4j-2.1.3.jar",
+        "gson-2.10.1.jar"
+    ]
+}

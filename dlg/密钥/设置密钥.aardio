@@ -1,0 +1,73 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="密钥设置";right=759;bottom=469;bgcolor=16777215)
+winform.add(
+accesskey={cls="edit";left=376;top=144;right=708;bottom=175;edge=1;font=LOGFONT(h=-18);multiline=1;z=1};
+account={cls="edit";left=376;top=240;right=708;bottom=271;edge=1;font=LOGFONT(h=-18);multiline=1;z=6};
+button={cls="button";text="提交";left=216;top=312;right=544;bottom=384;font=LOGFONT(h=-18);z=8};
+secret={cls="edit";left=376;top=192;right=708;bottom=223;edge=1;font=LOGFONT(h=-18);multiline=1;z=3};
+static2={cls="static";text="访问密钥ID(AccessKey ID):";left=32;top=144;right=320;bottom=173;center=1;font=LOGFONT(h=-22);transparent=1;z=2};
+static3={cls="static";text="访问密钥(AccessKey Secret):";left=32;top=192;right=320;bottom=221;center=1;font=LOGFONT(h=-22);transparent=1;z=4};
+static4={cls="static";text="阿里云访问密钥设置";left=216;top=48;right=504;bottom=88;align="center";center=1;font=LOGFONT(h=-30);transparent=1;z=5};
+static5={cls="static";text="所属备注:";left=32;top=240;right=320;bottom=269;center=1;font=LOGFONT(h=-22);transparent=1;z=7};
+static6={cls="static";text="声明:密钥全部保存在本地sqlite数据库,程序不会已任何形式收集密钥";left=336;top=416;right=736;bottom=440;notify=1;transparent=1;z=9}
+)
+/*}}*/
+
+import cussqlite;
+import localjava;
+import win.dlg.message;
+import web.json;
+	
+var db=cussqlite.db;
+
+
+winform.button.oncommand = function(id,event){
+	winform.button.disabled=true;
+	winform.button.disabledText = "初始化中。。。"
+	
+	var accesskey=winform.accesskey.text;
+	var secret=winform.secret.text;
+	var account=winform.account.text;
+	
+	if(winform.accesskey.getLength()==0){
+		winform.msgErr("访问密钥ID不能为空",300)
+		return; 
+	}
+	if(winform.secret.getLength()==0){
+		winform.msgErr("访问密钥不能为空",300)
+		return; 
+	}
+	if(winform.account.getLength()==0){
+		winform.msgErr("所属备注不能为空",300)
+		return; 
+	}
+	Tools=localjava.Tools;
+	var res=Tools.getRegion(accesskey,secret);
+	if(!res){
+		winform.msgErr("请检查密钥，无法获取阿里云区域",300)
+		return; 
+	}
+	var rest=web.json.parse(res);
+	var RDSRegion=rest.regions.RDSRegion;
+	
+	var cmd = db.prepare("INSERT OR IGNORE INTO al_region(localName,regionId,regionEndpoint) VALUES (@localName,@regionId,@regionEndpoint);")
+	for(k,v in RDSRegion ){
+			cmd.step(
+			localName=v.localName;
+			regionId=v.regionId;
+			regionEndpoint=v.regionEndpoint;
+			)
+	};
+	
+	db.exec("INSERT INTO `al_key`(access_key,secret,account) VALUES @values",{ values = { {accesskey,secret,account} } }); 
+	winform.button.disabled=false;
+	winform.button.disabledText = null;
+	
+	
+	winform.endModal("添加密钥成功")
+}
+
+winform.show();
+win.loopMessage();
+return winform;

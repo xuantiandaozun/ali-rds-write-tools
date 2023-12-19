@@ -1,0 +1,96 @@
+import win.ui;
+/*DSG{{*/
+var winForm = win.form(text="地区管理";right=759;bottom=469;bgcolor=16777215;sysmenu=false)
+winForm.add(
+button={cls="button";text="确定";left=592;top=400;right=728;bottom=448;db=1;dr=1;z=2};
+listview={cls="listview";left=12;top=84;right=742;bottom=376;db=1;dl=1;dr=1;dt=1;edge=1;z=1};
+static={cls="static";text="请选择一个资源所在地域，支持选择多个地域";left=16;top=24;right=578;bottom=48;dl=1;dr=1;dt=1;font=LOGFONT(h=-18);notify=1;transparent=1;z=3};
+static2={cls="static";text="选择一个地域，点击右键，选择使用或取消地域";left=16;top=58;right=402;bottom=80;transparent=1;z=4}
+)
+/*}}*/
+
+import win.ui.grid;
+import cussqlite;
+
+import console;
+import config;
+
+import win.dlg.message;
+
+
+//导入数据库
+var db = cussqlite.db;
+
+//查询密钥
+var keyItem=db.getTable("SELECT id ,access_key ,secret ,account FROM al_key limit 1")[1];
+
+
+var grid = win.ui.grid(winForm.listview);//创建数据视图	
+grid.setColumns({"服务地址","地区名称";"地区ID";"是否使用";}) 
+
+
+var mlist=db.getTable("SELECT * FROM al_region");
+
+getList=function(){
+	mlist=db.getTable("SELECT * FROM al_region order by isUse desc");
+	grid.setTable(mlist);
+}
+
+//初始化程序
+getList();
+
+import thread.command;
+var listener = thread.command();
+
+listener.refresh=function(){
+	getList();
+}
+
+//设置当前选中item
+var selectIem=null;
+
+winForm.popmenu = win.ui.popmenu(winForm); 
+winForm.popmenu.add('使用地区',function(id){
+	if(selectIem){
+	 	db.exec("UPDATE al_region SET isUse=1 WHERE regionId = @regionId;",{
+					regionId = mlist[selectIem].regionId;
+					} 
+				);
+		publish("mianmessage",)		
+		getList();		
+	} 
+} ) 
+winForm.popmenu.add('取消地区',function(id){
+	if(selectIem){
+		db.exec("UPDATE al_region SET isUse=0 WHERE regionId = @regionId;",{
+				regionId = mlist[selectIem].regionId;
+				} 
+			);
+		publish("mianmessage",)				
+	 	getList();		
+	}  
+} ) 
+//右键点击事件监听
+grid.onRightClick = function(item,subItem,nmListView){
+	if(item!=0){
+		var x,y = win.getMessagePos();
+		selectIem=item;  
+		winForm.popmenu.popup(true)	
+	}
+}
+
+
+winForm.button.oncommand = function(id,event){
+	var useRegion=db.getTable("SELECT * FROM al_region where isUse=1");
+	if(table.len(useRegion)==0){
+		winForm.msgErr("至少选择一个所属地区",300)
+		return; 
+	}
+	winForm.endModal("地区选择成功")
+}
+
+
+
+winForm.show();
+win.loopMessage();
+return winForm;

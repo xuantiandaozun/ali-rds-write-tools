@@ -1,0 +1,257 @@
+import win.ui;
+import win.ui.atom;
+/*DSG{{*/
+mainForm = win.form(text="数据库白名单";right=959;bottom=591;bgcolor=16777215)
+mainForm.add(
+button={cls="button";text="刷新数据库列表";left=761;top=26;right=940;bottom=73;dr=1;dt=1;z=4};
+button2={cls="button";text="批量添加白名单";left=569;top=26;right=748;bottom=73;dr=1;dt=1;z=7};
+listview={cls="listview";left=21;top=98;right=941;bottom=544;db=1;dl=1;dr=1;dt=1;edge=1;z=1};
+localIp={cls="static";left=95;top=65;right=305;bottom=90;dl=1;dt=1;font=LOGFONT(h=-18);transparent=1;z=6};
+regionName={cls="static";left=156;top=26;right=460;bottom=50;dl=1;dt=1;font=LOGFONT(h=-18);transparent=1;z=3};
+static={cls="static";text="当前选择地区:";left=30;top=26;right=155;bottom=50;dl=1;dt=1;font=LOGFONT(h=-18);notify=1;transparent=1;z=2};
+static2={cls="static";text="本机IP:";left=31;top=65;right=95;bottom=90;dl=1;dt=1;font=LOGFONT(h=-18);transparent=1;z=5}
+)
+/*}}*/
+
+import thread.command;
+import win.ui.grid;
+import preg;
+import console;
+import web.json;
+import thread.table;
+import fsys;
+import io;
+
+//自定义库
+import cussqlite;
+import localjava;
+
+//导入自定义java类
+Tools=localjava.Tools;
+//导入数据库
+var db = cussqlite.db;
+
+//创建弹出菜单
+var popmenu = win.ui.popmenu(mainForm);
+popmenu.add(
+	'密钥管理',function(id){ 
+		win.loadForm("\dlg\密钥\密钥管理.aardio").doModal();
+	 }
+);
+popmenu.add(
+	'地区管理',function(id){ 
+		win.loadForm("\dlg\地区\地区管理.aardio").doModal();
+	 }
+);
+//分隔线
+popmenu.add();
+popmenu.add('&退出程序',function(id){ mainForm.close() })
+
+var popmenu2 = win.ui.popmenu(mainForm);
+popmenu2.add(
+	'数据库目录',function(id){ 
+		win.loadForm("\dlg\关于\数据库目录.aardio").doModal();
+	 }
+);
+
+//添加窗口菜单
+var manMen=win.ui.menu(mainForm)
+manMen.add('设置',popmenu);
+manMen.add('关于',popmenu2);
+
+
+
+//创建线程共享表
+var thrdTable = thread.table("mainThreadTable",true );
+//创建线程命令
+var listener = thread.command();
+//查询阿里云密钥
+var keyList=db.getTable("SELECT id ,access_key ,secret ,account FROM al_key");
+// 列表视图初始化
+var grid = win.ui.grid(mainForm.listview);//创建数据视图	
+grid.setColumns({"创建时间";"实例ID";"实例状态";"实例备注";"数据库";"数据库版本";"所属"}) 
+
+if(table.len(keyList)==0){
+	if(!win.loadForm("\dlg\密钥\设置密钥.aardio").doModal()){
+		return ; 
+	}else {
+		keyList=db.getTable("SELECT id ,access_key ,secret ,account FROM al_key");
+	}
+	
+}
+//获取本机IP;
+getLocalIp=	function(mainForm){
+		import wsock.tcp.client;
+		import inet.http;
+		import preg;
+		import console;
+		import thread.table;
+		
+		//获取本机IP
+		mainForm.localIp.text=wsock.tcp.client.getLocalIp();
+		//获取公网IP
+		var http = inet.http();
+		var data = http.get("http://ip.chinaz.com/")
+		var ipRegex = preg("(?<=<dd class=\""fz24\"">).*(?=<\/dd>)");
+		var ip=ipRegex.match(data);
+		if(ip){
+			mainForm.localIp.text=ip;
+			var thrdTable = thread.table("mainThreadTable")
+			thrdTable.ip=ip;
+		}
+}
+//设置选择地区
+initRegin=function(){
+	//console.log("初始化选择地域")
+	var useRegion=db.getTable("SELECT * FROM al_region where isUse=1");
+	
+	if(table.len(useRegion)==0){
+		if(!win.loadForm("\dlg\地区\地区管理.aardio").doModal()){
+			return ; 
+		}else{
+			useRegion=db.getTable("SELECT * FROM al_region where isUse=1");
+		}
+	}
+	
+	var region="";
+	regex = preg("\（(.*?)\）");
+	for(k,v in useRegion){
+		if(v.localName){
+			var reName=regex.match(v.localName);
+			region=string.concat(region,reName,"、") 
+		}
+	
+	}
+	var lastIndex=string.len(region)-1;
+	region=string.slice(region,1,lastIndex,true)
+	mainForm.regionName.text=region
+};
+
+//拉取阿里云数据库
+getAlRds =	function(mainForm,keyList){
+		import java.jre.v8ora;
+		import web.json;
+		import console;
+		//必须在线程函数内部导入需要的库
+        import thread.command;
+        import cussqlite;
+        import localjava;
+        
+		//导入数据库
+		var db = cussqlite.db;
+		var useRegion=db.getTable("SELECT * FROM al_region where isUse=1");
+		//导入自定义java类
+		Tools=localjava.Tools
+		
+		for(k,keyItem in keyList){
+			//查询数据库
+			var key=keyItem.access_key
+			var secret=keyItem.secret
+			//调接口查询
+			var res=Tools.getRdsList(key,secret,web.json.stringifyArray(useRegion));
+			if(!res){
+				break ; 
+			}
+			var rdsList=web.json.parse(res);
+			var size=table.len(rdsList);		
+			var command = db.prepare("REPLACE INTO al_rds(DBInstanceId,createTime,DBInstanceStatus,
+				DBInstanceDescription,engine,engineVersion,regionId,account,access_key,secret) VALUES (@DBInstanceId,@createTime,@DBInstanceStatus,
+				@DBInstanceDescription,@engine,@engineVersion,@regionId,@account,@access_key,@secret);" ) 
+			for(i=1;size;1){
+				var item=rdsList[i];
+				item.account=keyItem.account
+				item.access_key=keyItem.access_key
+				item.secret=keyItem.secret
+				command.step(item);
+			};
+		}
+		//send同步模式调用界面线程的命令
+        thread.command.refresh();
+        mainForm.button.disabled=false;
+		mainForm.button.disabledText = null        	
+}
+
+//修改数据库白名单
+updateRdsWrite=function(mainForm){
+			import thread.command;
+			import win.ui.grid;
+			import preg;
+			import web.json;
+			import thread.table;
+			import cussqlite;
+			import localjava;
+			
+			//获取共享表
+			var thrdTable = thread.table("mainThreadTable")			
+			//导入自定义java类
+			Tools=localjava.Tools
+			//导入数据库
+			var db = cussqlite.db;
+			
+			var mlist=db.getTable("SELECT * FROM al_rds");
+			var length=table.len(mlist);
+			//console.log("开始修改白名单")
+			for(k,item in mlist){
+				var regionId=item.regionId;
+				if(!regionId){
+					break;
+				}
+				var regItem=db.getTable("SELECT * FROM al_region where regionId=@regionId",{
+					regionId=regionId
+				})[1];
+				item.regionEndpoint=regItem.regionEndpoint;
+				if(thrdTable.ip){
+					var rest=Tools.updateW(web.json.stringify(item),thrdTable.ip);
+					rest=web.json.parse(rest);
+					if(rest.statusCode!=200){
+						//修改白名单失败
+						win.msgbox("修改白名单失败","提示")
+					}
+				}
+			}
+			mainForm.button2.disabled=false;
+			mainForm.button2.disabledText=null;
+			win.msgbox("修改白名单成功","提示")			
+		}
+// 刷新本地数据库列表
+getList=function(){
+	var mlist=db.getTable("SELECT * FROM al_rds")
+	//console.log(web.json.stringify(mlist))
+	grid.setTable(mlist);
+}
+//线程刷新命令
+listener.refresh=getList
+
+//设置选择地域
+initRegin();	
+//异步获取IP,默认获取本机IP
+thread.invoke(getLocalIp,mainForm)
+//异步获取数据库列表
+thread.invoke(getAlRds,mainForm,keyList)
+//刷新本地数据库列表
+getList();
+//订阅主线程消息，实现多窗体通信
+subscribe("mianmessage",function(...){
+	//console.log("主窗体订阅消息");
+	initRegin();
+});
+
+//拉取阿里云数据库
+mainForm.button.oncommand = function(id,event){
+	mainForm.button.disabled=true;
+	mainForm.button.disabledText = "修改中..."
+	thread.invoke(getAlRds,mainForm,keyList)
+}
+
+//批量添加白名单
+mainForm.button2.oncommand = function(id,event){
+	mainForm.button2.disabled=true;
+	mainForm.button2.disabledText = "修改中..."
+	thread.invoke(updateRdsWrite,mainForm)
+
+}
+
+
+
+mainForm.show();
+return win.loopMessage();

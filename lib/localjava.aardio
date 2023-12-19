@@ -1,0 +1,23 @@
+﻿
+namespace localjava{
+	import java.jre.v8;
+	
+	//java.path.setJreHome("/java/jre1.8");
+	
+	java.addClassPath("/java/lib/");
+	
+	
+	var jvm = java();
+	
+	
+	// 编译Tools类 打包前应该注释
+	/*
+	var prcs = java.compile("\java\com\system\tools\Tools.java")
+	prcs.logResponse(); //这是一个管理进程，也就是 process.popen 对象
+	prcs.close();
+	*/
+	
+	//导入自定义java类
+	Tools=jvm.import("com.system.tools.Tools");
+	
+}

@@ -1,0 +1,89 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="密钥管理";right=759;bottom=469;bgcolor=16777215)
+winform.add(
+button={cls="button";text="新增";left=26;top=17;right=176;bottom=49;z=2};
+listview={cls="listview";left=26;top=62;right=720;bottom=430;edge=1;z=1}
+)
+/*}}*/
+
+import cussqlite;
+import config;
+
+var db = cussqlite.db;
+
+import win.ui.grid;
+import console
+
+var grid = win.ui.grid(winform.listview);//创建数据视图
+grid.setReadonlyColumns(1);//可选设置禁止编辑的列，设为 -1 禁止编辑所有列
+grid.setColumns({"ID";"访问密钥";"密钥";"账户"}) //可选自定义显示列名
+
+//刷新数据方法
+refresh=function(){
+mlist=db.getTable("SELECT id as ID,access_key ,secret ,account FROM al_key")
+grid.setTable(mlist)
+}
+
+refresh();
+
+//设置当前选中item
+var selectIem=null;
+
+//右键菜单
+winform.popmenu = win.ui.popmenu(winform); 
+winform.popmenu.add('删除',function(id){ 
+		if(selectIem){
+			db.exec("DELETE FROM al_key WHERE id = @ID;",{
+				ID = mlist[selectIem].ID;
+				} 
+			);
+			refresh();	
+		}	
+} ) 
+
+//右键点击事件监听
+grid.onRightClick = function(item,subItem,nmListView){
+	if(item!=0){
+		var x,y = win.getMessagePos();
+		selectIem=item;  
+		winform.popmenu.popup(true)	
+	}
+}
+
+//列表编辑监听
+grid.onEditChanged = function(text,iItem,iSubItem){
+	if(iSubItem==4){
+		db.exec("UPDATE al_key SET account = @account WHERE id = @ID;",{
+		ID = mlist[iItem].ID;
+		account = text;
+		} 
+		);	
+	}elseif(iSubItem==3){
+		db.exec("UPDATE al_key SET secret = @secret WHERE id = @ID;",{
+		ID = mlist[iItem].ID;
+		secret = text;
+		} 
+		);	
+	}elseif(iSubItem==2){
+		db.exec("UPDATE al_key SET access_key = @access_key WHERE id = @ID;",{
+		ID = mlist[iItem].ID;
+		access_key = text;
+		} 
+		);
+	}
+	
+	refresh();
+}
+
+
+
+winform.button.oncommand = function(id,event){
+	//执行参数化 SQL 插入数据
+	db.exec("INSERT INTO `al_key`(account) VALUES @values",{ values = { {''} } }); 
+	refresh();
+}
+
+winform.show();
+win.loopMessage();
+return winform;

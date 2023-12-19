@@ -1,0 +1,43 @@
+﻿namespace cussqlite
+
+import sqlite;
+import config;
+
+
+db = sqlite(config.__dbPath);
+
+// 数据库初始化
+if( not db.existsTable("al_key")) {
+	db.exec("CREATE TABLE al_key (
+	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  	access_key text,
+  	secret TEXT,
+  	account TEXT
+	);" );
+} 
+if( not db.existsTable("al_rds")) {
+	db.exec("CREATE TABLE al_rds (
+  	createTime TEXT,
+  	DBInstanceId text NOT NULL,
+  	DBInstanceStatus TEXT,
+  	DBInstanceDescription TEXT,
+  	engine TEXT,
+  	engineVersion TEXT,
+  	account TEXT,
+  	regionId text,
+  	access_key TEXT,
+  	secret TEXT,
+  	PRIMARY KEY (DBInstanceId)
+	);");
+}
+if( not db.existsTable("al_region")) {
+	db.exec("CREATE TABLE al_region (
+  	regionEndpoint TEXT,
+  	localName TEXT,
+  	regionId text NOT NULL,
+  	IsUse integer NOT NULL DEFAULT 0,
+  	PRIMARY KEY (regionId)
+	);");
+}
+
+
